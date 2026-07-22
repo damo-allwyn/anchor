@@ -1,0 +1,76 @@
+---
+name: spec
+description: >
+  (anchor) Turn a settled idea into a written spec with tasks sized for one
+  builder each, saved to docs/specs/. Consumes the Anchor Think Summary from
+  the conversation or pasted in. Writes exactly one file. Ends by pointing to
+  /anchor:build.
+disable-model-invocation: true
+---
+
+# Spec
+
+Turn the agreed idea into a durable spec file.
+
+## Input
+
+Look for an `## Anchor Think Summary` block in the conversation (live or pasted
+from a previous session). If none exists, do NOT refuse — run one compressed
+confirmation pass: state your best understanding of the seven think items,
+get a confirm-or-correct, then proceed. Point the user at /anchor:think only
+if the idea turns out to be genuinely unsettled.
+
+## Output
+
+Write `docs/specs/<YYYY-MM-DD>-<slug>.md` (create the directory if needed):
+
+```markdown
+# <Title>
+
+Status: draft
+Source: <one-line problem statement>
+
+## Goal
+## Non-goals
+## Riskiest assumption
+
+## Tasks
+
+### T1: <short name>
+- Type: ship              <!-- ship (code change) | scout (investigate → report) -->
+- Status: todo            <!-- todo | building | verified | failed | held | landed -->
+- Branch: —
+- Escalation: required    <!-- line present ONLY when the task touches an invariant category (see /anchor:build) -->
+- Acceptance criteria:
+  - <criterion>
+  - <criterion>
+
+## Holds
+<!-- decision forks recorded by agents; user resolves at /anchor:land -->
+- [ ] <YYYY-MM-DD> <task>: <decision needed> — recommendation: <one line>
+```
+
+## Task rules
+
+- Each task sized for one builder agent in one session. Split rather than stuff.
+- **Acceptance criteria must be self-contained.** A checker agent with zero
+  project context — no spec, no conversation — must be able to verify the task
+  from its criteria alone. Name exact files, commands, observable behaviours.
+  "Works correctly" is not a criterion; "`npm test` passes and `GET /api/items`
+  returns 200 with a JSON array" is.
+- Prefer criteria a machine can check (command output, file existence, test
+  results) over criteria requiring judgment.
+- Order tasks by dependency; note blocking relationships inline.
+- Scout tasks: acceptance criteria are the questions the report must answer —
+  each answerable with evidence from the repo. Scouts never change code.
+- Mark `Escalation: required` on any task touching an invariant category
+  (destructive/irreversible ops, shared-DB schema changes, new dependencies,
+  security/auth surface, deploys) — those never auto-land.
+
+Show the user the spec, apply corrections, then end with:
+
+```
+Spec written: docs/specs/<file>
+
+**Next:** run /anchor:build
+```

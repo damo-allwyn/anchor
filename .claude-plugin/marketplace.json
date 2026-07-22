@@ -1,0 +1,13 @@
+{
+  "name": "anchor",
+  "owner": {
+    "name": "Damian Kosinski"
+  },
+  "plugins": [
+    {
+      "name": "anchor",
+      "source": "./",
+      "description": "Personal software development framework: think, spec, build with parallel agents, verify with zero-context checkers, land behind a human gate."
+    }
+  ]
+}
