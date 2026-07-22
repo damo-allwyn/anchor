@@ -1,9 +1,9 @@
 ---
 name: context
 description: >
-  (anchor) Write or refresh CONTEXT.md — the per-project file every anchor
-  command reads: stack, test command, terms, dated decisions. Run once per
-  repo, refresh on major change. Reads the repo; writes only CONTEXT.md.
+  Write or refresh CONTEXT.md — the per-project file every anchor command
+  reads: stack, test command, terms, dated decisions. Run once per repo,
+  refresh on major change. Reads the repo; writes only CONTEXT.md.
 disable-model-invocation: true
 ---
 
@@ -23,6 +23,9 @@ CI config, existing docs); ask the user only what the repo cannot answer.
 - Mode: auto-land               <!-- auto-land | gate. Absent = auto-land.
                                      auto-land: verified unescalated tasks merge
                                      without approval; gate: everything waits. -->
+- Escalation paths: <globs>     <!-- OPTIONAL. Per-project additions to the
+                                     mechanical tripwire in /anchor:land's
+                                     merge rules. -->
 
 ## Terms
 - <project word>: <meaning>
@@ -35,7 +38,9 @@ CI config, existing docs); ask the user only what the repo cannot answer.
 
 - `Test command:` is mandatory. If the project has no tests, record the closest
   verification command (build, typecheck, lint) and say so explicitly — checkers
-  need SOMETHING runnable.
+  need SOMETHING runnable. Know the trade-off: the test command is the safety
+  floor of auto-land — with a typecheck-only command, anything that typechecks
+  can land. Accept that, or set `Mode: gate`.
 - Decisions are append-mostly but curated: when a decision is reversed, rewrite
   the entry to record the reversal — don't leave both truths standing.
 - Keep the whole file under a page. It is read by every builder and every

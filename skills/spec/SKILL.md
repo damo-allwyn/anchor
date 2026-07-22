@@ -1,9 +1,9 @@
 ---
 name: spec
 description: >
-  (anchor) Turn a settled idea into a written spec with tasks sized for one
-  builder each, saved to docs/specs/. Consumes the Anchor Think Summary from
-  the conversation or pasted in. Writes exactly one file. Ends by pointing to
+  Turn a settled idea into a written spec with tasks sized for one builder
+  each, saved to docs/specs/. Consumes the Anchor Think Summary from the
+  conversation or pasted in. Writes exactly one file. Ends by pointing to
   /anchor:build.
 disable-model-invocation: true
 ---
@@ -38,12 +38,17 @@ Source: <one-line problem statement>
 
 ### T1: <short name>
 - Type: ship              <!-- ship (code change) | scout (investigate → report) -->
-- Status: todo            <!-- todo | building | verified | failed | held | landed -->
+- Status: todo            <!-- todo | building | checking | verified | failed | held | landed | abandoned -->
 - Branch: —
-- Escalation: required    <!-- line present ONLY when the task touches an invariant category (see /anchor:build) -->
+- Escalation: none        <!-- ALWAYS present: none | required — <reason>.
+                               Assess every task against the invariant
+                               categories (see /anchor:build). -->
 - Acceptance criteria:
   - <criterion>
   - <criterion>
+<!-- /anchor:build adds `- Repairs: 1` when a repair round is spent;
+     /anchor:land deletes it on reopen. -->
+
 
 ## Holds
 <!-- decision forks recorded by agents; user resolves at /anchor:land -->
@@ -63,9 +68,11 @@ Source: <one-line problem statement>
 - Order tasks by dependency; note blocking relationships inline.
 - Scout tasks: acceptance criteria are the questions the report must answer —
   each answerable with evidence from the repo. Scouts never change code.
-- Mark `Escalation: required` on any task touching an invariant category
+- The `Escalation:` line is mandatory on every task — `none` or
+  `required — <reason>`. Assess against the invariant categories
   (destructive/irreversible ops, shared-DB schema changes, new dependencies,
-  security/auth surface, deploys) — those never auto-land.
+  security/auth surface, deploys); `required` never auto-lands. Writing
+  `none` is a claim you make deliberately, not a default to skip past.
 
 Show the user the spec, apply corrections, then end with:
 

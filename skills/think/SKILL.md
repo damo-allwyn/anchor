@@ -1,7 +1,7 @@
 ---
 name: think
 description: >
-  (anchor) Pressure-test an idea through focused interrogation until the plan is
+  Pressure-test an idea through focused interrogation until the plan is
   settled, then emit a durable summary block that survives session loss or
   compaction. Proportional: small ideas get one confirmation pass, not the full
   interview. Writes nothing to disk. Ends by pointing to /anchor:spec.

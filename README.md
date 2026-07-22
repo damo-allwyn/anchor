@@ -14,11 +14,17 @@ primitives.
 /anchor:think    interrogate the idea (proportional), emit durable summary
 /anchor:spec     write docs/specs/<date>-<slug>.md — ship + scout tasks with
                  self-contained acceptance criteria
-/anchor:build    ≤3 tasks in parallel; ships get worktree + branch, scouts
-                 investigate read-only; verified unescalated tasks auto-land
-/anchor:check    2 blind checkers per ship (1 per scout report); all must pass
-/anchor:land     drain the human queue: escalated/gated tasks, decision holds,
-                 scout reports, failures
+/anchor:build    ≤3 tasks in parallel; ships get worktree + branch (based on
+                 main, bootstrapped: deps + .env symlinks), scouts investigate
+                 read-only; verified unescalated tasks auto-land; stale tasks
+                 from crashed runs get reclaimed
+/anchor:check    2 blind checkers per ship on distinct lenses (behavioral /
+                 audit, different models); 1 report-checker per scout; all
+                 must pass
+/anchor:land     drain the human queue: escalated/gated/tripwired tasks,
+                 decision holds, scout reports, failures; owns the canonical
+                 merge rules (tripwire → freshness re-test → --no-ff → test
+                 main → rollback on red → cleanup after green)
 ```
 
 Utilities: `/anchor:context` (per-repo CONTEXT.md, once), `/anchor:status`
@@ -33,7 +39,10 @@ Utilities: `/anchor:context` (per-repo CONTEXT.md, once), `/anchor:status`
   that want approval on everything set `Mode: gate` in CONTEXT.md.
 - **Invariant escalations, always.** Destructive/irreversible ops, shared-DB
   schema changes, new dependencies, security/auth surface, deploys — never
-  auto-land, regardless of mode.
+  auto-land, regardless of mode. Tagging is backstopped by a mechanical
+  tripwire at merge time (lockfiles, dependency manifests, migrations,
+  workflows, deploy files, `.env*`): an untagged hit still queues for the
+  human.
 - **Decisions are a queue, not a blocker.** Agents hitting a genuine fork
   record a hold with a recommendation and keep working; you drain holds in
   batch at /anchor:land.
@@ -41,13 +50,15 @@ Utilities: `/anchor:context` (per-repo CONTEXT.md, once), `/anchor:status`
   implementing a recommendation requires a promoted ship task.
 - **Main is yours.** Agents never author commits on the main branch — the only
   main-branch commits anchor creates are --no-ff merges of verified (auto-land)
-  or approved (gate) task branches. Spec, report, and context edits stay
-  uncommitted for you to commit.
+  or approved (gate) task branches. A merge that turns main red is rolled back
+  (`git reset --keep ORIG_HEAD`) and halts further landing. Spec, report, and
+  context edits stay uncommitted for you to commit.
 - **Checkers are blind on purpose.** They get acceptance criteria, a branch,
   and a test command — nothing else. They verify what was asked, not what was
   meant.
 - **State is plain files.** Per-project: `CONTEXT.md` + `docs/specs/*.md`
-  (task status lives in the spec). Global: `PREFERENCES.md` in this repo.
+  (task status, repair counters — everything a crashed session must not
+  forget — lives in the spec). Global: `PREFERENCES.md` in this repo.
 - **The engine is a seam.** Worktree isolation is done with plain `git worktree`;
   agent teams vs. background subagents is an implementation detail of
   /anchor:build.
@@ -71,13 +82,16 @@ subagents automatically.
 ```
 .claude-plugin/   plugin.json + marketplace.json (repo is its own marketplace)
 skills/           think, spec, build, check, land, context, status
-agents/           anchor-builder, anchor-checker, anchor-scout
+agents/           anchor-builder, anchor-checker, anchor-report-checker,
+                  anchor-scout
 PREFERENCES.md    global stack + implementation preferences
 ```
 
 ## Per-project requirements
 
 - `CONTEXT.md` with a `Test command:` line — /anchor:build refuses to run
-  without one (checkers need something runnable). Optional `Mode:` line
-  (`auto-land` | `gate`, absent = auto-land).
+  without one (checkers need something runnable; the test command is also the
+  safety floor of auto-land). Optional `Mode:` line (`auto-land` | `gate`,
+  absent = auto-land) and `Escalation paths:` line (per-project tripwire
+  additions).
 - `docs/specs/` — created by /anchor:spec; `docs/reports/` — scout reports.

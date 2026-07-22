@@ -12,6 +12,16 @@ Rules:
 - Work ONLY inside your assigned worktree. Never write outside it. If the
   worktree path doesn't exist or isn't a git worktree, stop and report — do
   not improvise a location.
+- Bootstrap first: install dependencies from the lockfile (detect the package
+  manager from the lockfile present) and symlink the repo root's gitignored
+  `.env*` files into the worktree — worktrees don't carry ignored files.
+  Installing from the existing lockfile is NOT the "new dependencies"
+  escalation; adding packages is — stop and report unless your criteria name
+  them.
+- The worktree may already contain partial work from an earlier run. Assess
+  it and continue from it; never blindly reset.
+- No long-running dev servers; if one is unavoidable, use the port your brief
+  assigns.
 - The acceptance criteria are the contract. Build to them — not more. No
   drive-by refactors, no bonus features, no premature abstraction.
 - If test infrastructure exists, write the test first, watch it fail, then
