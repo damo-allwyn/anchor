@@ -4,7 +4,7 @@ description: >
   Verify one built task with two independent zero-context checker agents on
   distinct lenses. Checkers receive ONLY the acceptance criteria, branch, and
   test command — no spec, no conversation, no think summary. Both must pass.
-  Read-only over the code; writes only the task status in the spec file.
+  Read-only over the code; writes only task status and check reports.
 disable-model-invocation: true
 ---
 
@@ -35,9 +35,15 @@ help the checker" — stop; that is the failure mode this gate exists to prevent
 
 - **Checker A — behavioral**: lead with execution — run the test command,
   execute every command named in the criteria, exercise observable behaviour.
-- **Checker B — audit**: lead with the diff — scope creep, test-config or
-  test-script tampering, touches on escalation-category files (reported as
-  flags).
+  Verify the worktree is clean: uncommitted tracked changes at handoff are a
+  FAIL — the merge takes only what was committed, so behaviour that depends
+  on uncommitted files is a lie.
+- **Checker B — audit**: lead with the diff — scope creep (reported under
+  out-of-scope changes; the pipeline treats it as a flag); test-config or
+  test-script tampering (a FAIL); touches on escalation-category files and
+  semantic red flags (auth/permission logic edits, destructive operations,
+  fetch-and-execute patterns, vendored blobs, install hooks) — reported as
+  flags, never a failure by themselves.
 
 Both checkers verdict EVERY criterion — the lens directs how they look, not
 what they cover. Dispatch checker B with a `model` override different from
@@ -50,13 +56,21 @@ the session's model (session on opus or fable → `sonnet`; session on sonnet �
 - **Any FAIL** → task not verified. Collect each failing checker's
   criterion-by-criterion reasons and evidence for the repair round.
 - **Split verdict** (one pass, one fail) → treat as FAIL, but mark it
-  `verdict: split` in the report — splits often mean an ambiguous acceptance
-  criterion, which is a spec bug worth fixing too.
+  `split` — splits often mean an ambiguous acceptance criterion, which is a
+  spec bug worth fixing too.
+
+Persist every outcome (build owns the writes): a `- Checkers:` line in the
+task block, and on any FAIL, split, or flag, the detail in
+`docs/reports/<spec-slug>-<task-id>-check.md`. Verdicts, flags, and repair
+reasons must survive the session — never leave them only in conversation.
+
+A PASS with flags is still a PASS — but flags block auto-land; the task
+queues at /anchor:land with the flags on display.
 
 ## Rules
 
 - Checkers never fix anything. Failure reasons flow back through /anchor:build's
-  repair round, to the builder.
+  repair round, to the builder (or a fresh scout, for report failures).
 - Never re-run a checker hoping for a different answer. A flaky verdict is
   itself evidence — report it.
 - If a criterion is unverifiable as written (checker cannot tell what would

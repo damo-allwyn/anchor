@@ -20,7 +20,8 @@ primitives.
                  from crashed runs get reclaimed
 /anchor:check    2 blind checkers per ship on distinct lenses (behavioral /
                  audit, different models); 1 report-checker per scout; all
-                 must pass
+                 must pass; verdicts + flags persist to the spec and
+                 docs/reports/*-check.md
 /anchor:land     drain the human queue: escalated/gated/tripwired tasks,
                  decision holds, scout reports, failures; owns the canonical
                  merge rules (tripwire → freshness re-test → --no-ff → test
@@ -39,13 +40,17 @@ Utilities: `/anchor:context` (per-repo CONTEXT.md, once), `/anchor:status`
   that want approval on everything set `Mode: gate` in CONTEXT.md.
 - **Invariant escalations, always.** Destructive/irreversible ops, shared-DB
   schema changes, new dependencies, security/auth surface, deploys — never
-  auto-land, regardless of mode. Tagging is backstopped by a mechanical
-  tripwire at merge time (lockfiles, dependency manifests, migrations,
-  workflows, deploy files, `.env*`): an untagged hit still queues for the
-  human.
-- **Decisions are a queue, not a blocker.** Agents hitting a genuine fork
-  record a hold with a recommendation and keep working; you drain holds in
-  batch at /anchor:land.
+  auto-land, regardless of mode. Tagging is backstopped twice: a mechanical
+  path tripwire at merge time (lockfiles, dependency manifests, migrations,
+  workflows, deploy files, `.env*`) catches what paths can catch; the audit
+  checker's flags (auth-logic edits, destructive code, fetch-and-execute,
+  vendored blobs, install hooks) catch the semantic rest. Either one blocks
+  auto-land. Agent conduct itself is instruction-guarded, not
+  sandbox-guarded — these backstops exist to catch what instructions miss.
+- **Decisions are a queue, not a blocker.** An agent hitting a genuine fork
+  records a hold with a recommendation and parks that task (`held`, partial
+  work preserved in its worktree); the run keeps working on other tasks. You
+  drain holds in batch at /anchor:land.
 - **A report is evidence, not authorization.** Scouts investigate read-only;
   implementing a recommendation requires a promoted ship task.
 - **Main is yours.** Agents never author commits on the main branch — the only

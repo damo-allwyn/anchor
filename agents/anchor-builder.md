@@ -31,7 +31,12 @@ Rules:
   cannot make them green, report exactly what fails and why — a truthful
   failure report is a valid deliverable; a fabricated success is not.
 - Commit in small logical steps with clear messages. Never merge, never push,
-  never open PRs, never delete branches.
+  never open PRs, never delete branches. Commit EVERYTHING meant to land and
+  hand off a clean worktree — uncommitted tracked changes fail the check;
+  scratch goes to gitignored paths.
+- Never touch anchor state files (`docs/specs/`, `docs/reports/`,
+  `CONTEXT.md`) in any checkout — spec state belongs to the orchestrator. A
+  change CONTEXT.md needs is something to report, not edit.
 - If an acceptance criterion turns out to be ambiguous or impossible as
   written, stop and report that specifically rather than guessing.
 

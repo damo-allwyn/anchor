@@ -1,9 +1,9 @@
 ---
 name: land
 description: >
-  Drain the human queue: gated, escalated, or tripwired verified tasks, failed
-  tasks, decision holds, and scout reports. Merging is mechanical after a yes.
-  Owns the canonical merge rules — including auto-land merges performed during
+  Drain the human queue: every verified task awaiting merge, failed tasks,
+  decision holds, and scout reports. Merging is mechanical after a yes. Owns
+  the canonical merge rules — including auto-land merges performed during
   /anchor:build. Merge commits are the only commits anchor makes on main.
 disable-model-invocation: true
 ---
@@ -15,28 +15,41 @@ genuinely needs a human.
 
 ## Queue — present in this order
 
-1. **Escalated, gated, or tripwired verified tasks** — evidence table:
+1. **Verified ship tasks awaiting merge** (scouts queue under item 3) — ALL
+   of them, whatever the reason: gate mode, `Escalation: required`, a
+   tripwire hit, checker flags, or stranded auto-land leftovers (session died
+   before the merge, a dirty checkout degraded it, or a red main halted
+   sibling merges). Evidence table:
 
    | Task | Branch | Checkers | Tests | Diffstat | Why it waits |
 
-   "Why it waits" names the reason: gate mode, `Escalation: required`, or
-   `tripwire` (mechanical hit — list the matching files). Plus per task:
+   "Checkers" reads from the task's `- Checkers:` line and the check report
+   file (`docs/reports/<spec-slug>-<task-id>-check.md`) when one exists.
+   "Why it waits" names the reason: `gate`, `escalation`, `tripwire` (list
+   the matching files), `flags` (list them), or `stranded`. Plus per task:
    criteria vs. checker findings one line each, split verdicts and spec
-   defects flagged. Explicit yes per task (or "all") merges it. Silence,
-   "looks fine", "probably ok" — not approval; ask again plainly.
+   defects called out. Explicit yes per task (or "all") merges it. Silence,
+   "looks fine", "probably ok" — not approval; ask again plainly. An explicit
+   NO gets the failed-task options: reopen (`Status: todo`, delete
+   `Repairs:`, criteria amended if that's the objection) or drop
+   (`Status: abandoned` + cleanup) — a rejected task never sits at
+   `verified` to re-queue forever.
 2. **Holds** — each decision fork with the recording agent's recommendation.
-   Write the resolution and date into the spec's `## Holds`; a resolved hold
-   reopens its task (`Status: todo`, criteria amended if the resolution
-   changes them, `Repairs:` line deleted).
+   Write the resolution and date into the spec's `## Holds`. A resolution
+   either reopens the task (`Status: todo`, criteria amended if the
+   resolution changes them, `Repairs:` line deleted — branch and worktree
+   survive for reuse) or drops it (`Status: abandoned`, cleanup below if a
+   branch exists).
 3. **Scout reports** — one-paragraph summary each, link to the report file.
-   A report is evidence, not authorization: "implement it" means adding a new
-   ship task to the spec referencing the report — never acting on the report
-   directly.
+   Once presented and acknowledged, set the scout task `Status: landed` —
+   presentation IS a scout's delivery; scouts never merge. A report is
+   evidence, not authorization: "implement it" means adding a new ship task
+   to the spec referencing the report — never acting on the report directly.
 4. **Failed tasks** — never landable. Reopen: `Status: todo`, delete the
    `Repairs:` line, criteria optionally amended; branch and worktree survive
-   for /anchor:build to reuse. Offer "reopen fresh" — delete both first
-   (`git branch -D`, `git worktree remove`). Or drop: `Status: abandoned`,
-   `git branch -D`, `git worktree remove`.
+   for /anchor:build to reuse. Offer "reopen fresh" — cleanup first (worktree
+   before branch: `git worktree remove <path>`, then `git branch -D`). Or
+   drop: `Status: abandoned`, then the same cleanup, worktree first.
 
 ## Merge rules — canonical, shared by auto-land during /anchor:build
 
@@ -46,7 +59,11 @@ For each task being landed, in this exact order:
    source changes (anchor state — `docs/specs/`, `docs/reports/`,
    `CONTEXT.md` — is exempt). Here at /anchor:land, dirty source → halt and
    ask the user to commit or stash. During /anchor:build auto-land, dirty
-   source → don't merge; queue the task here instead.
+   source → don't merge; queue the task here instead. Exemption caveat: if
+   the BRANCH itself touches an anchor state file that is dirty on main, the
+   merge would abort — that's also a builder contract violation (builders
+   never touch anchor state); surface it and have the user commit or stash
+   those files before merging.
 2. **Escalation tripwire.** `git diff main...<branch> --name-only`, matched
    against: lockfiles (`package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`,
    `bun.lock*`, `requirements*.txt`, `poetry.lock`, `uv.lock`, `go.sum`,
@@ -56,28 +73,41 @@ For each task being landed, in this exact order:
    `.env*`, plus any `Escalation paths:` entries in CONTEXT.md. A hit on a
    task not marked `Escalation: required` → NEVER auto-land; queue here
    flagged `tripwire`. After explicit human approval the tripwire is
-   informational.
+   informational. The tripwire is path-based; semantic escalations
+   (auth-surface edits, destructive code) arrive via checker flags, which
+   block auto-land the same way.
 3. **Freshness.** If main has moved since the branch's base: `git merge main`
-   inside the task's worktree. Conflict → `git merge --abort`, queue the task
-   here with the conflicting file list — never auto-resolve. Clean → if the
-   sync changed a lockfile, reinstall deps in the worktree; re-run the test
-   command there. Red → treat as a checker failure (repair round rules in
-   /anchor:build). Green → continue.
+   inside the task's worktree. Conflict → `git merge --abort`; during
+   /anchor:build auto-land, queue the task here with the conflicting file
+   list; here at /anchor:land, ask the user — reopen the task for a rebuild
+   against current main (`Status: todo`, delete `Repairs:`, worktree kept)
+   or resolve the conflict manually and re-run /anchor:land. Never
+   auto-resolve. Clean → if the sync changed a lockfile, reinstall deps in
+   the worktree; re-run the test command there. Red: during /anchor:build
+   auto-land → repair round (build owns it); here at /anchor:land →
+   `Status: failed` with the failing output as a note and move to the next
+   queue item — the reopen path owns repair. Green → continue.
 4. **Merge.** `git merge --no-ff anchor/<spec-slug>-<task-id>`, then run the
    test command on main.
 5. **Red main** → `git reset --keep ORIG_HEAD` (never `--hard` — it would
    destroy the uncommitted spec edits on main), `Status: failed` with a note,
-   halt all remaining merges. Branch and worktree survive for repair.
-6. **Cleanup — only after a green main test:**
-   `git worktree remove ../<repo>-anchor-<spec-slug>-<task-id>` and
-   `git branch -d anchor/<spec-slug>-<task-id>`. Then `Status: landed`.
+   halt all remaining merges. Branch and worktree survive for repair. If
+   `reset --keep` itself refuses (overlapping local edits), stop and report —
+   never escalate to `--hard`.
+6. **Cleanup — only after a green main test, worktree before branch:**
+   `git worktree remove ../<repo>-anchor-<spec-slug>-<task-id>`, then
+   `git branch -d anchor/<spec-slug>-<task-id>`. If the removal refuses
+   ("contains modified or untracked files"): inspect with
+   `git -C <worktree> status --porcelain` — only untracked scratch → remove
+   with `--force`; tracked modifications → stop and report. Never `rm -rf`.
+   Then `Status: landed`.
 
 These merge commits are the ONLY commits anchor ever creates on the main
 branch — whether merged here after approval or automatically in auto-land
 mode. Never `git commit` anything else there: spec updates, reports, and
 cleanup edits stay uncommitted, for the user to commit themselves.
 
-When all tasks are landed or resolved, set the spec's header `Status: done`.
+When all tasks are landed or abandoned, set the spec's header `Status: done`.
 
 ## Report
 

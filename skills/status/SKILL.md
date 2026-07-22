@@ -26,10 +26,12 @@ Gather:
 
 ## Render exactly four sections, each present even when empty
 
-- **Needs you** — the drain queue: unresolved holds, escalated / gated /
-  tripwired tasks awaiting approval at /anchor:land, unread scout reports,
-  failed tasks, split verdicts, orphaned branches, and stale tasks
-  (recommend reclaiming via /anchor:build).
+- **Needs you** — the drain queue: unresolved holds, ALL verified tasks
+  awaiting merge at /anchor:land (gate, escalated, tripwired, flagged, or
+  stranded auto-land leftovers), unread scout reports, failed tasks, split
+  verdicts and flags (read from each task's `- Checkers:` line and
+  `docs/reports/*-check.md`), orphaned branches, and stale tasks (recommend
+  reclaiming via /anchor:build).
 - **In flight** — tasks building or checking right now.
 - **Recently landed** — landed tasks from the most recent spec.
 - **Up next** — todo tasks whose dependencies are met, and the single

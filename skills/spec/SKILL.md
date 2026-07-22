@@ -46,8 +46,10 @@ Source: <one-line problem statement>
 - Acceptance criteria:
   - <criterion>
   - <criterion>
-<!-- /anchor:build adds `- Repairs: 1` when a repair round is spent;
-     /anchor:land deletes it on reopen. -->
+<!-- /anchor:build adds `- Repairs: 1` when a repair round is spent
+     (/anchor:land deletes it on reopen) and a `- Checkers:` verdict line
+     after each check; failure/flag detail lands in
+     docs/reports/<spec-slug>-<task-id>-check.md. -->
 
 
 ## Holds
