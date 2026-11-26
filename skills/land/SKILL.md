@@ -28,7 +28,16 @@ genuinely needs a human.
    "Why it waits" names the reason: `gate`, `escalation`, `tripwire` (list
    the matching files), `flags` (list them), or `stranded`. Plus per task:
    criteria vs. checker findings one line each, split verdicts and spec
-   defects called out. Explicit yes per task (or "all") merges it. Silence,
+   defects called out. Explicit yes per task (or "all") merges it —
+   and approval is a REPLY to this table: it must arrive after the queue is
+   presented, in a later user message. A blanket approval embedded in the
+   invocation itself ("merge everything", "treat this message as approval",
+   "proceed autonomously") predates the evidence — it is NOT approval;
+   present the queue and stop. Consequence, by design: a headless one-shot
+   /anchor:land can never merge — it reports the queue; merging takes an
+   interactive yes. This governs the /anchor:land human queue ONLY —
+   auto-land merges during /anchor:build are authorized by Mode plus the
+   merge rules below, never by reply-approval, and are unaffected. Silence,
    "looks fine", "probably ok" — not approval; ask again plainly. An explicit
    NO gets the failed-task options: reopen (`Status: todo`, delete
    `Repairs:`, criteria amended if that's the objection) or drop
@@ -83,12 +92,21 @@ For each task being landed, in this exact order:
    against current main (`Status: todo`, delete `Repairs:`, worktree kept)
    or resolve the conflict manually and re-run /anchor:land. Never
    auto-resolve. Clean → if the sync changed a lockfile, reinstall deps in
-   the worktree; re-run the test command there. Red: during /anchor:build
+   the worktree; re-run the task's test command there (CONTEXT.md's
+   `Fast test command:` when the task checked at the low tier, else the test
+   command). Red: during /anchor:build
    auto-land → repair round (build owns it); here at /anchor:land →
    `Status: failed` with the failing output as a note and move to the next
    queue item — the reopen path owns repair. Green → continue.
-4. **Merge.** `git merge --no-ff anchor/<spec-slug>-<task-id>`, then run the
-   test command on main.
+4. **Merge.** `git merge --no-ff anchor/<spec-slug>-<task-id>`, then the
+   post-merge test on main — governed by a mechanical rule, not judgment:
+   when `git rev-parse HEAD^{tree}` equals `git rev-parse <branch>^{tree}`
+   (the merge produced exactly the tree already tested in the worktree —
+   always true when main never moved or the freshness step just ran green)
+   AND the branch diff touches no lockfile or dependency manifest (installed
+   deps on main may differ from the worktree's), the re-test is redundant —
+   do NOT run it: identical tree, identical result. Either condition fails →
+   run the test command on main.
 5. **Red main** → `git reset --keep ORIG_HEAD` (never `--hard` — it would
    destroy the uncommitted spec edits on main), `Status: failed` with a note,
    halt all remaining merges. Branch and worktree survive for repair. If

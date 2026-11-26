@@ -14,6 +14,8 @@ live in that project's CONTEXT.md and win.
 - AI: OpenRouter (LLMs), fal.ai (media), vector embeddings for similarity
 - Automation: n8n webhooks
 - Design: Figma
+- Iconography: Feather icons — implemented via lucide-react (Feather-derived
+  superset, ships with shadcn); consistent stroke style, no mixed icon sets
 
 ## PoC mindset
 
@@ -54,6 +56,8 @@ New integrations and non-trivial logic get proven in isolation BEFORE app code.
 - SQL migrations: sequential numbered files in `supabase/migrations/`
   (`###_descriptive_name.sql`), additive-only against shared databases (new
   tables, nullable columns).
+- Web UI: every interactive element (buttons, selects, clickable rows/cards,
+  collapse headers) gets `cursor-pointer` — Tailwind v4 dropped the default.
 - Next.js: server components by default (`'use client'` only when needed),
   server actions for mutations, route handlers for APIs, flat component trees.
 

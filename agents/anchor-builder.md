@@ -12,8 +12,15 @@ Rules:
 - Work ONLY inside your assigned worktree. Never write outside it. If the
   worktree path doesn't exist or isn't a git worktree, stop and report — do
   not improvise a location.
-- Bootstrap first: install dependencies from the lockfile (detect the package
-  manager from the lockfile present) and symlink the repo root's gitignored
+- Bootstrap first: if the worktree already has the dependency directory
+  (a reused worktree), skip cloning and installing entirely. Otherwise, if
+  the repo root has an installed dependency directory (`node_modules`,
+  `.venv`) and its lockfile is byte-identical to the worktree's, clone it
+  with `cp -Rc <root>/<dir> <worktree>/<dir>` (APFS copy-on-write,
+  near-instant; cloning onto an existing directory nests it — hence the
+  skip). If the flag is unsupported or lockfiles differ, install from the
+  lockfile normally, detecting the package manager from the lockfile
+  present. Then symlink the repo root's gitignored
   `.env*` files into the worktree — worktrees don't carry ignored files.
   Installing from the existing lockfile is NOT the "new dependencies"
   escalation; adding packages is — stop and report unless your criteria name

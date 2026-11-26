@@ -1,9 +1,10 @@
 ---
 name: check
 description: >
-  Verify one built task with two independent zero-context checker agents on
-  distinct lenses. Checkers receive ONLY the acceptance criteria, branch, and
-  test command — no spec, no conversation, no think summary. Both must pass.
+  Verify one built task with zero-context checker agents — two on distinct
+  lenses, or one for mechanically-verified `Risk: low` tasks. Checkers receive
+  ONLY the acceptance criteria, branch, and test command — no spec, no
+  conversation, no think summary. All dispatched checkers must pass.
   Read-only over the code; writes only task status and check reports.
 disable-model-invocation: true
 ---
@@ -13,9 +14,36 @@ disable-model-invocation: true
 Adversarial verification of one task. The value of this gate is exactly the
 checkers' ignorance — protect it.
 
-Ship tasks get two checkers (below). Scout tasks get ONE `anchor-report-checker`
-under the same zero-context contract: only the questions, the report path, and
-the repo — verdict is whether every question is answered with real evidence.
+Ship tasks get two checkers (below) — or one, when the tier check passes.
+Scout tasks get ONE `anchor-report-checker` under the same zero-context
+contract: only the questions, the report path, and the repo — verdict is
+whether every question is answered with real evidence.
+
+## Tier — proportional checking
+
+Read the task's `Risk:` line (absent = `normal`). `Risk: low` is a claim,
+never trusted at face value — verify it mechanically from the diff
+(`git diff main...<branch>`) before dispatching:
+
+1. Diffstat ≤ 5 files and ≤ 100 changed lines.
+2. No touches on escalation-tripwire paths (the list in land's merge rules,
+   plus CONTEXT.md `Escalation paths:`).
+3. No touches on the test command's own config or scripts (package.json
+   scripts, test configs, CI).
+
+All three hold → dispatch **one** `anchor-checker`, no lens (the agent covers
+both emphases when unassigned), no model override. Its test command is
+CONTEXT.md's `Fast test command:` when defined, else the test command. It
+still reports flags, and flags still block auto-land — the tier changes how
+much checking runs, never what blocks a merge. The deliberate trade: low-tier
+tasks lose the two-checker verdict decorrelation.
+
+Any condition fails → upgrade to the full contract below (two checkers, both
+lenses, model split, full test command) and note the upgrade on the
+`- Checkers:` line (e.g. `— tier upgraded: diff 14 files`). A mistagged task
+costs nothing in safety.
+
+`Risk: normal` (or absent) → the full contract below.
 
 ## Zero-context contract
 
@@ -52,7 +80,8 @@ the session's model (session on opus or fable → `sonnet`; session on sonnet �
 
 ## Verdict
 
-- **Both PASS** → task verified. Update spec: `Status: verified`.
+- **All dispatched checkers PASS** → task verified. Update spec:
+  `Status: verified`.
 - **Any FAIL** → task not verified. Collect each failing checker's
   criterion-by-criterion reasons and evidence for the repair round.
 - **Split verdict** (one pass, one fail) → treat as FAIL, but mark it

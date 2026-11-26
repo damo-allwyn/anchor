@@ -43,6 +43,12 @@ Source: <one-line problem statement>
 - Escalation: none        <!-- ALWAYS present: none | required — <reason>.
                                Assess every task against the invariant
                                categories (see /anchor:build). -->
+- Risk: normal            <!-- ALWAYS present on ship tasks: low | normal.
+                               low = small, contained, behaviour-light
+                               (copy, styles, docs): one checker + fast test
+                               command. Verified mechanically at check time
+                               from the diff; a mismatch upgrades to the
+                               full contract. Scouts ignore this line. -->
 - Acceptance criteria:
   - <criterion>
   - <criterion>
@@ -75,6 +81,10 @@ Source: <one-line problem statement>
   (destructive/irreversible ops, shared-DB schema changes, new dependencies,
   security/auth surface, deploys); `required` never auto-lands. Writing
   `none` is a claim you make deliberately, not a default to skip past.
+- The `Risk:` line is the same kind of deliberate claim: `low` buys a lighter,
+  faster check (one checker, fast test command) and is verified mechanically
+  against the actual diff at check time — an oversized or sensitive diff
+  upgrades to the full contract automatically. When unsure, write `normal`.
 
 Show the user the spec, apply corrections, then end with:
 

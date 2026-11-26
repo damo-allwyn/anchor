@@ -87,11 +87,19 @@ inconsistency — don't silently recreate it.
 Builders work ONLY in their assigned worktree, never the main checkout.
 Brief: acceptance criteria verbatim, worktree path + branch, CONTEXT.md stack /
 test command / decisions, PREFERENCES.md implementation preferences, and the
-bootstrap contract:
+bootstrap contract below. For `Risk: low` tasks, brief the `Fast test command:`
+from CONTEXT.md (when defined) as the test command — the check contract
+mechanically verifies the tier claim against the diff and re-runs the full
+command if the claim doesn't hold.
 
 - Install dependencies from the lockfile first (detect the package manager
-  from the lockfile present). Installing from an existing lockfile is NOT the
-  "new dependencies" escalation; adding packages is.
+  from the lockfile present) — but clone before installing: if the repo root
+  has an installed dependency directory (`node_modules`, `.venv`) and its
+  lockfile is byte-identical to the worktree's, `cp -Rc` it into the worktree
+  (APFS copy-on-write, near-instant; flag unsupported → fall back to a normal
+  install; worktree already has the directory — a reused worktree — skip
+  both, cloning onto it would nest it). Installing from an existing lockfile
+  is NOT the "new dependencies" escalation; adding packages is.
 - Symlink the repo root's gitignored `.env*` files into the worktree (absolute
   paths) — worktrees don't carry ignored files.
 - No long-running dev servers; if one is unavoidable, use the port assigned
@@ -119,8 +127,9 @@ First, integrity: re-read the task's spec block and compare against what you
 last wrote (status, `Repairs:`). An edit you didn't make is a finding — record
 a hold, don't trust it.
 
-Ships → the /anchor:check contract (read the file): two zero-context checkers
-on distinct lenses. Scouts → one zero-context `anchor-report-checker`
+Ships → the /anchor:check contract (read the file): zero-context checkers,
+tier-resolved — two on distinct lenses, or one for mechanically-verified
+`Risk: low` tasks. Scouts → one zero-context `anchor-report-checker`
 verifying the report answers every question with evidence. Either way, set
 `Status: checking` when a task's checkers are dispatched, and when verdicts
 return, persist them: a `- Checkers:` line in the task block (e.g.
@@ -146,9 +155,10 @@ verdicts and repair reasons must survive the session.
   no `Repairs:` line, add `Repairs: 1`, set `Status: building`, and dispatch
   one repair agent — a builder in the same worktree for ships, a fresh scout
   on the same report for scouts — briefed with the failure reasons from the
-  check report file. Then re-check with the FULL contract for the task's
-  type — ships: two fresh checkers, both lenses, model split; scouts: one
-  fresh report-checker — never a partial re-run of just the failed criteria.
+  check report file. Then re-check with the complete contract for the task's
+  type — ships: fresh checkers with the tier re-resolved from the post-repair
+  diff (repairs can grow a diff past the low bar); scouts: one fresh
+  report-checker — never a partial re-run of just the failed criteria.
   Failure with `Repairs: 1` already present → `Status: failed`. Never loop
   further — the counter lives in the spec file, so a crashed session cannot
   forget it.

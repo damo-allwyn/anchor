@@ -19,13 +19,15 @@ primitives.
                  read-only; verified unescalated tasks auto-land; stale tasks
                  from crashed runs get reclaimed
 /anchor:check    2 blind checkers per ship on distinct lenses (behavioral /
-                 audit, different models); 1 report-checker per scout; all
-                 must pass; verdicts + flags persist to the spec and
-                 docs/reports/*-check.md
+                 audit, different models) — or 1 for `Risk: low` tasks whose
+                 diff mechanically verifies as small and untripwired; 1
+                 report-checker per scout; all must pass; verdicts + flags
+                 persist to the spec and docs/reports/*-check.md
 /anchor:land     drain the human queue: escalated/gated/tripwired tasks,
                  decision holds, scout reports, failures; owns the canonical
                  merge rules (tripwire → freshness re-test → --no-ff → test
-                 main → rollback on red → cleanup after green)
+                 main, skipped when the merge tree is the already-tested tree
+                 → rollback on red → cleanup after green)
 ```
 
 Utilities: `/anchor:context` (per-repo CONTEXT.md, once), `/anchor:status`
